@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<meta lang="en">
+<html>
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <link href="https://fonts.googleapis.com/css?family=Saira+Stencil+One&display=swap" rel="stylesheet">
+
+    <script type="text/javascript" src="https://d3js.org/d3.v5.min.js"></script>
+    <!-- <script type="text/javascript" src="d3.min.js"></script> -->
+    <script type="text/javascript" src="./js/pcpCanvasChart.js"></script>
+<style>
+    main>.container {
+        padding: 80px 15px 0;
+    }
+
+    .navbar-brand {
+        padding-top: .55rem;
+        padding-bottom: .75rem;
+        font-size: 1.4rem;
+        color: #FF4500;
+        font-family: 'Saira Stencil One', cursive;
+        float: none;
+    }
+
+    .brush .extent {
+        fill-opacity: .3;
+        stroke: #fff;
+        shape-rendering: crispEdges;
+    }
+
+    .axis line,
+    .axis path {
+        fill: none;
+        stroke: #000;
+        stroke-width: 1.5;
+        shape-rendering: crispEdges;
+    }
+
+    .axis text {
+        fill: black;
+        text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+    }
+</style>
+  </head>
+  <body>
+      <nav class="navbar fixed-top navbar-expand-lg p-0 shadow" style="background-color: rgb(59, 93, 122);">
+        <div class="navbar-brand mx-auto" style="color: rgb(245, 130, 35);" href="#">
+          Parallel Coordinates Chart
+            <!-- <img src="//placehold.it/120/ccff00" class="rounded-circle"> -->
+        </div>
+      </nav>
+    </nav>
+
+    <!-- Begin page content -->
+    <main role="main" class="flex-shrink-0">
+      <div class="container w-100 mb-4">
+        <form class="md-form d-flex justify-content-center w-100">
+          <div class="row">
+            <div class="col-5">
+              <div class="custom-file w-100">
+                <input type="file" class="custom-file-input" id="fileInput" onchange="loadFile()">
+                <label id="fileLabel" class="custom-file-label" for="fileInput">Choose CSV File</label>
+              </div>
+            </div>
+            <div class="col-7">
+              <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
+                <div class="btn-group" role="group">
+                  <button id="sampleDataDropdown" type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Load Sample Data
+                  </button>
+                  <div class="dropdown-menu" aria-labelledby="sampleDataDropdown">
+                    <a class="dropdown-item" href="#" onclick="loadAAPLSampleData()">S&P 500 Sample (Apple)</a>
+                    <a class="dropdown-item" href="#" onclick="loadCarsSampleData()">ASA Cars</a>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="redrawChart()">
+                  Redraw
+                </button>
+                <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#settingsModal">
+                  Settings
+                </button>
+                <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#helpModal">
+                  Help
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+        <div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="settingsModalLabel">Usage Instructions</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                <p>This page shows an interactive parallel coordinate plot for exploring multivariate data. It uses a combination of SVG elements and HTML Canvas via the d3.js library to support larger files than SVG graphics can support alone.</p>
+                <p>Use the 'Choose CSV File' button to open a local CSV formatted text file. Columns are automatically parsed using d3.js auto typing. Date, numeric, and Boolean data types are shown as axes in the parallel coordinate plot. Columns of other data types are ignored.</p>
+                <p>Sample files can be shown from the 'Load Sample Data' button.</p>
+                <p>Lines in the plot can be selected by dragging ranges on any of the axes.</p>
+                <p>The 'Redraw' button can be used to regenerate the plot. If the window is resized, regenerating the plot will adjust the chart widths to fill the available space.</p>
+                <p>The 'Settings' button can be used to control several visual parameters of the charts.</p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Ok</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal fade" id="settingsModal" tabindex="-1" role="dialog" aria-labelledby="settingsModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="settingsModalLabel">View Settings</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                <form>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="" id="showSelectedCheck" onchange="showSelectedCheckChanged()" checked>
+                                <label class="form-check-label" for="showSelectedCheck">
+                                    Show Selected Lines
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="" id="showUnselectedCheck" onchange="showUnselectedCheckChanged()" checked>
+                                <label class="form-check-label" for="showUnselectedCheck">
+                                    Show Unselected Lines
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="heightRange">Selected Line Opacity:</label>
+                            <input type="range" class="custom-range" min="0" max="100" value="15" id="selectedLineOpacityRange" onchange="selectedLineOpacityChanged()">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="heightRange">Unselected Line Opacity:</label>
+                            <input type="range" class="custom-range" min="0" max="100" value="5" id="unselectedLineOpacityRange" onchange="unselectedLineOpacityChanged()">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label for="heightRange">Chart Height:</label>
+                            <input type="range" class="custom-range" min="200" max="800" value="300" id="heightRange" onchange="heightChanged()">
+                        </div>
+                    </div>
+                </form>
+              </div>
+              <div class="modal-footer">
+                <!-- <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button> -->
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Ok</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="container-fluid">
+        <div id="chart" style="position: relative;" class="mx-4"></div>
+        <hr>
+
+        <center>
+            <p>&copy; <a href="http://csteed.com">Chad A. Steed</a>
+                <script type="text/javascript">
+                    document.write(new Date().getFullYear());
+                </script>
+            </p>
+        </center>
+      </div>
+    </main>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+    <script>
+      const chartMargin = { top: 60, right: 20, bottom: 20, left: 20 };
+      const reader = new FileReader();
+      let chartData;
+      let chart;
+      let chartTitle;
+
+      const loadFile = () => {
+        const file = document.getElementById('fileInput').files[0];
+        reader.addEventListener("load", parseFile, false);
+        if (file) {
+          reader.readAsText(file);
+          $('#fileLabel').html(file.name);
+          chartTitle = file.name;
+        }
+      }
+
+      const loadAAPLSampleData = () => {
+        d3.csv('data/AAPL_data.csv', 
+          ({date, open, high, low, close, volume}) =>
+          ({date: new Date(date), open: +open, high: +high, low: +low, close: +close, volume: +volume}))
+        .then(function(data) {
+            chartTitle = 'S&P 500 APPL (Apple) Stock Performance';
+            loadData(data);
+        })
+        .catch(function(error) {
+          console.log(error);
+        });
+      }
+
+      const loadCarsSampleData = () => {
+        d3.csv('data/cars.csv', d3.autoType)
+        //   ({MPG, Cylinders, Displacement, HP, Weight, volume}) =>
+        //   ({date: new Date(date), open: +open, high: +high, low: +low, close: +close, volume: +volume}))
+        .then(function(data) {
+            chartTitle = '1983 ASA Cars Dataset';
+            loadData(data);
+        })
+        .catch(function(error) {
+          console.log(error);
+        });
+      }
+
+      const loadData = (data) => {
+        chartData = data;
+        removeChart();
+        createChart();
+      }
+
+      const parseFile = () => {
+        data = d3.csvParse(reader.result, d3.autoType);
+
+        console.log(data);
+        const validColumns = [];
+        data.columns.forEach(function(column) {
+            if (data[0][column] instanceof Date ||
+                data[0][column] instanceof Boolean ||
+                typeof data[0][column] === 'number') {
+                    validColumns.push(column);
+            }
+        });
+
+        console.log(validColumns);
+        const newData = [];
+        data.forEach(function (d) {
+            let newElement = {};
+            validColumns.forEach(function(column) {
+                newElement[column] = d[column];
+            });
+            newData.push(newElement);
+        });
+
+        loadData(newData);
+      }
+
+      const removeChart = () => {
+        chartMap = null;
+        d3.select('#chart').selectAll("*").remove();
+      }
+
+      const createChart = () => {
+        let divWidth = document.getElementById('chart').clientWidth;
+        // const chartHeight = document.getElementById('heightRange').value;
+        // const chartHeight = divWidth * .5;
+
+        const showSelected = document.getElementById("showSelectedCheck").checked;
+        const showUnselected = document.getElementById("showUnselectedCheck").checked;
+        const chartHeight = document.getElementById("heightRange").value;
+        const selectedLineOpacity = document.getElementById("selectedLineOpacityRange").value / 100.;
+        const unselectedLineOpacity = document.getElementById("unselectedLineOpacityRange").value / 100.;
+
+        document.getElementById('chart').style.height = `${chartHeight}px`;
+
+        chart = pcpChart()
+            .titleText(chartTitle)
+            .showSelectedLines(showSelected)
+            .showUnselectedLines(showUnselected)
+            .selectedLineOpacity(selectedLineOpacity)
+            .unselectedLineOpacity(unselectedLineOpacity)
+            .width(divWidth)
+            .height(chartHeight)
+            .margin(chartMargin);
+        d3.select('#chart').call(chart, chartData);
+      };
+
+      const showSelectedCheckChanged = () => {
+          const showSelected = document.getElementById("showSelectedCheck").checked;
+          chart.showSelectedLines(showSelected);
+      }
+
+      const showUnselectedCheckChanged = () => {
+          const showUnselected = document.getElementById("showUnselectedCheck").checked;
+          chart.showUnselectedLines(showUnselected);
+      }
+
+      const heightChanged = () => {
+        //   const chartHeight = document.getElementById('heightRange').value;
+        //   document.getElementById('chart').style.height = `${chartHeight}px`;
+        //   chart.height(chartHeight);
+        redrawChart();
+      }
+
+      const selectedLineOpacityChanged = () => {
+          const opacity = document.getElementById('selectedLineOpacityRange').value / 100.;
+          chart.selectedLineOpacity(opacity);
+      }
+
+      const unselectedLineOpacityChanged = () => {
+          const opacity = document.getElementById('unselectedLineOpacityRange').value / 100.;
+          chart.unselectedLineOpacity(opacity);
+      }
+
+      const redrawChart = () => {
+        removeChart();
+        createChart();
+      }
+    </script>
+
+    <!-- <script type="text/javascript">
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-39778348-1']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+    </script> -->
+
+    
+  </body>
+</html>
