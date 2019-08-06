@@ -8,8 +8,8 @@ var pcpChart = function () {
     let width = 800 - margin.left - margin.right;
     let height = 300 - margin.top - margin.bottom;
     let titleText;
-    let foregroundLineOpacity = 0.15;
-    let backgroundLineOpacity = 0.05;
+    let selectedLineOpacity = 0.15;
+    let unselectedLineOpacity = 0.05;
     let showSelected = true;
     let showUnselected = true;
 
@@ -25,6 +25,7 @@ var pcpChart = function () {
 
     function chart(selection, data) {
         chartData = data;
+        selected = chartData;
 
         x = d3.scalePoint().range([0, width]).padding(.25);
         y = {};
@@ -40,7 +41,7 @@ var pcpChart = function () {
             .style('left', `${margin.left}px`)
         background = backgroundCanvas.node().getContext('2d');
         background.strokeStyle = "rgba(0,0,0)";
-        background.globalAlpha = backgroundLineOpacity;
+        background.globalAlpha = unselectedLineOpacity;
 
         const foregroundCanvas = selection.append('canvas')
             .attr('id', 'foreground')
@@ -51,7 +52,7 @@ var pcpChart = function () {
             .style('left', `${margin.left}px`)
         foreground = foregroundCanvas.node().getContext('2d');
         foreground.strokeStyle = "rgba(0,100,160)";
-        foreground.globalAlpha = foregroundLineOpacity;
+        foreground.globalAlpha = selectedLineOpacity;
         foreground.antialias = true;
 
         svg = selection.append('svg')
